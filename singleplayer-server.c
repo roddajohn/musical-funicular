@@ -9,7 +9,7 @@
 
 void server_function(int from_client, int to_client) {
   char line[100];
-  int dx = -1;
+  int dx = 1;
   int dy = 0;
   struct drawing_information {
     int paddle_one_y;
@@ -31,25 +31,37 @@ void server_function(int from_client, int to_client) {
   while (1) {
     char line_to_write[100];
     sprintf(line_to_write,
-            "%d,%d,%d,%d,%d,%d", 
+            "%d,%d,%d,%d", 
             drawing_information.ball_x, 
             drawing_information.ball_y, 
-            drawing_information.paddle_one_y, 
-            drawing_information.paddle_two_y, 
             drawing_information.score_one, 
             drawing_information.score_two
             );
     printf("%s\n",line_to_write);
-
+    
     write(to_client, line_to_write, sizeof(line_to_write));
- 
+    
     read(from_client, line, sizeof(line));
 
+    char *temp;
+    temp = strsep(&line, ",");
+    drawing_information.paddle_one_y = atoi(temp);
+
+    temp = strsep(&line, ",");
+    drawing_information.paddle_two_y = atoi(temp);
+    
     drawing_information.ball_x += dx;
     drawing_information.ball_y += dy;
-    float delay;
-    delay = 1/60;
-    sleep(delay);
+
+    if (drawing_information.ball_x < 27 && drawing_information.ball_y > drawing_information.paddle_one_y && drawing_information.ball_y < (drawing_information.paddle_one_y + 40)) {
+      dx *= -1;
+      dy *= -1;
+    }
+    else if (drawing_information.ball_x > 693 && drawing_information.ball_y > drawing_information.paddle_two_y && drawing_information.ball_y < (drawing_information.paddle_two_y + 40)) {
+      dx *= -1;
+      dy *= -1;
+    }
+    sleep(1);
   }
 }
 
