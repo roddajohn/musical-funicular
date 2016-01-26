@@ -14,8 +14,9 @@ void server_function(int from_client, int to_client) {
   struct drawing_information {
     int paddle_one_y;
     int paddle_two_y;
-    int ball_x;
-    int ball_y;
+    float ball_speed;
+    float ball_x;
+    float ball_y;
     int score_one;
     int score_two;
   } drawing_information;
@@ -27,41 +28,94 @@ void server_function(int from_client, int to_client) {
   drawing_information.paddle_two_y = 0;
   drawing_information.score_one = 0;
   drawing_information.score_two = 0;
-  
+  drawing_information.ball_speed = 1;
+
   while (1) {
     char line_to_write[100];
     sprintf(line_to_write,
-            "%d,%d,%d,%d", 
+            "%f,%f,%d,%d,%f", 
             drawing_information.ball_x, 
             drawing_information.ball_y, 
             drawing_information.score_one, 
-            drawing_information.score_two
+            drawing_information.score_two,
+	    drawing_information.ball_speed
             );
-    printf("%s\n",line_to_write);
+    //    printf("To Client[%s]\n",line_to_write);
     
     write(to_client, line_to_write, sizeof(line_to_write));
     
-    read(from_client, line, sizeof(line));
+    read(from_client, line, 100);
+    
+    //    printf("From Client[%s]\n", line);
 
     char *temp;
-    temp = strsep(&line, ",");
-    drawing_information.paddle_one_y = atoi(temp);
-
-    temp = strsep(&line, ",");
-    drawing_information.paddle_two_y = atoi(temp);
+    char *input[2];
     
-    drawing_information.ball_x += dx;
-    drawing_information.ball_y += dy;
+    int i = 0;
+    char *in = line;
+    while(temp = strsep(&in, ",")) {
+      input[i++] = temp;
+    }
 
-    if (drawing_information.ball_x < 27 && drawing_information.ball_y > drawing_information.paddle_one_y && drawing_information.ball_y < (drawing_information.paddle_one_y + 40)) {
-      dx *= -1;
+    drawing_information.paddle_one_y = atoi(input[0]);
+    drawing_information.paddle_two_y = atoi(input[1]);
+
+    drawing_information.ball_x += dx*drawing_information.ball_speed;
+    drawing_information.ball_y += dy*drawing_information.ball_speed;
+
+    float x = drawing_information.ball_x;
+    float y = drawing_information.ball_y;
+
+    if (y < 6) {
       dy *= -1;
     }
-    else if (drawing_information.ball_x > 693 && drawing_information.ball_y > drawing_information.paddle_two_y && drawing_information.ball_y < (drawing_information.paddle_two_y + 40)) {
-      dx *= -1;
+    else if (y > 470) {
       dy *= -1;
     }
-    sleep(1);
+    if (x < 32) {
+      if (y < drawing_information.paddle_one_y || y > (drawing_information.paddle_one_y + 40)) {
+	drawing_information.score_two++;
+	drawing_information.ball_x = 360;
+	drawing_information.ball_y = 240;
+	dx = 1;
+	dy = 0;
+      }
+      else if (y > (drawing_information.paddle_one_y + 20)) {
+	dx = 1;
+	dy = 1;
+      }
+      else if (y < (drawing_information.paddle_one_y + 20)) {
+	dx = 1;
+	dy = -1;
+      }
+      else {
+	dx = 1;
+	dy = 0;
+      }
+    }
+    else if (x > 688) {
+      if (y < drawing_information.paddle_two_y || y > (drawing_information.paddle_two_y + 40)) {
+	drawing_information.score_one++;
+	drawing_information.ball_x = 360;
+	drawing_information.ball_y = 240;
+	dx = -1;
+	dy = 0;
+      }
+      else if (y > (drawing_information.paddle_two_y + 20)) {
+	dx = -1;
+	dy = 1;
+      }
+      else if (y < (drawing_information.paddle_two_y + 20)) {
+	dx = -1;
+	dy = -1;
+      }
+      else {
+	dx = -1;
+	dy = 0;
+      }
+    }
+    
+    usleep(10000);
   }
 }
 

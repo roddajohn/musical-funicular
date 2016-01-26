@@ -14,8 +14,9 @@
 typedef struct drawing_information {
   int paddle_one_y;
   int paddle_two_y;
-  int ball_x;
-  int ball_y;
+  float ball_speed;
+  float ball_x;
+  float ball_y;
   int score_one;
   int score_two;
 } drawing_information;
@@ -59,9 +60,10 @@ int main(int argc, char *argv[]) {
       di->paddle_two_y = 0;
       di->score_one = 0;
       di->score_two = 0;
+      di->ball_speed = 1;
 
       int shmid;
-      key_t key = 25565;
+      key_t key = 25568;
 
       if ((shmid = shmget(key, sizeof(drawing_information), IPC_CREAT | 0666)) < 0) {
 	printf("Error shmgetting...\n");
@@ -69,7 +71,7 @@ int main(int argc, char *argv[]) {
       }
       
       int width = 720;
-      int height = 480;
+      int height = 520;
       int videoFlags = SDL_SWSURFACE | SDL_RESIZABLE | SDL_DOUBLEBUF;
       int bpp = 32;
       
@@ -114,9 +116,33 @@ int main(int argc, char *argv[]) {
 	
 	cairo_arc(cr, di->ball_x, di->ball_y, 5, 0, 2*M_PI);
 	cairo_fill(cr);
-	
+
+	cairo_move_to(cr, 0, 480);
+	cairo_line_to(cr, 720, 480);
+
 	cairo_stroke(cr);
 	
+	cairo_select_font_face(cr, "Courier",
+			       CAIRO_FONT_SLANT_NORMAL,
+			       CAIRO_FONT_WEIGHT_BOLD);
+
+	cairo_set_font_size(cr, 38);
+
+	cairo_move_to(cr, 20, 510);
+	char *to_send = (char *)malloc(100);
+	sprintf(to_send,
+	  "%d",
+	  di->score_one);
+
+	cairo_show_text(cr, to_send);
+
+	cairo_move_to(cr, 693, 510);
+	sprintf(to_send,
+		"%d",
+		di->score_two);
+
+	cairo_show_text(cr, to_send); 
+		
 	SDL_BlitSurface(sdl_surface, NULL, screen, NULL);
 	SDL_Flip(screen);
 	
@@ -133,20 +159,24 @@ int main(int argc, char *argv[]) {
 	      done = 1;
 	    }
 	    else if (event.key.keysym.sym == SDLK_w) {
-	      printf("updated paddle position\n");
-	      di->paddle_one_y =+ 1;
+	      if (di->paddle_one_y > 15) {
+		di->paddle_one_y -= 15;
+	      }
 	    }
 	    else if (event.key.keysym.sym == SDLK_s) {
-	      printf("updated paddle position\n");
-	      di->paddle_one_y =- 1;
+	      if (di->paddle_one_y < 410) {
+		di->paddle_one_y += 15;
+	      }
 	    }
 	    else if (event.key.keysym.sym == SDLK_UP) {
-	      printf("updated paddle position\n");
-	      di->paddle_two_y =+ 1;
+	      if (di->paddle_two_y > 15) {
+		di->paddle_two_y -= 15;
+	      }
 	    }
 	    else if (event.key.keysym.sym == SDLK_DOWN) {
-	      printf("updated paddle position\n");
-	      di->paddle_two_y =- 1;
+	      if (di->paddle_two_y < 410) {
+		di->paddle_two_y += 15;
+	      }
 	    }
 	    break;
 	  case SDL_QUIT:
@@ -196,10 +226,8 @@ int main(int argc, char *argv[]) {
 	// Get message from server
 	read(from_server, buffer, sizeof(buffer));
 	// Print confirmation
-	printf("Message recieved [%s]\n", buffer);
 	char *to_send = parse_input(buffer, di);
-	write(to_server, to_send, sizeof(buffer));
-	free(to_send);
+	write(to_server, to_send, 100);
       }
     }
 }
@@ -215,7 +243,7 @@ char *parse_input(char *buffer, drawing_information *di) {
   }
 
   int shmid;
-  key_t key = 25565;
+  key_t key = 25568;
   
   if ((shmid = shmget(key, sizeof(drawing_information), IPC_CREAT | 0666)) < 0) {
     printf("Error shmgetting...\n");
@@ -227,15 +255,19 @@ char *parse_input(char *buffer, drawing_information *di) {
     exit(1);
   }
   
-  di->ball_x = atoi(input[0]);
-  di->ball_y = atoi(input[1]);
+  di->ball_x = atof(input[0]);
+  di->ball_y = atof(input[1]);
+  di->ball_speed = atof(input[4]);
   di->score_one = atoi(input[2]);
   di->score_two = atoi(input[3]);
 
+  //printf("[%d][%d]\n", di->paddle_one_y, di->paddle_two_y);
   char *to_send = (char *)malloc(100);
   sprintf(to_send,
 	  "%d,%d",
 	  di->paddle_one_y,
 	  di->paddle_two_y);
+  //printf("to_send: [%s]\n", to_send);
+  
   return to_send;
 }
