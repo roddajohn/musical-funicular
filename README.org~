@@ -1,0 +1,11 @@
+* README
+By: Christopher Liang and Rodda John
+* Compiling Instructions
+Typing make will compile the project;
+
+./client runs the client.
+* Files
+singleplayer-client.c
+singleplayer-server.c
+makefile
+README.org

@@ -1,0 +1,16 @@
+* README
+By: Christopher Liang and Rodda John
+* Compiling Instructions
+Typing make will compile the project;
+
+./client runs the client.
+* Required Libraries
+We require 4 libraries (and dependencies)
+
+They are: libsdl1.2-dev libsdl-image1.2-dev libsdl-mixer1.2-dev libsdl-ttf2.0-dev
+(They are all on apt!)
+* Files
+singleplayer-client.c
+singleplayer-server.c
+makefile
+README.org
